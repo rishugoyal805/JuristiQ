@@ -49,5 +49,9 @@ Ensure MongoDB is running locally or use a cloud-based service like MongoDB Atla
 
 📄 License
 This project is licensed under the MIT License.
-```markdown
+
 👉 [Live Demo](https://juristi-q.vercel.app)
+
+## 🙋‍♂️ Author
+
+Made with 💙 by [Rishu Goyal](https://github.com/rishugoyal805)
