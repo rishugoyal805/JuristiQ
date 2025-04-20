@@ -47,9 +47,6 @@
 📌 Note
 Ensure MongoDB is running locally or use a cloud-based service like MongoDB Atlas.
 
-📄 License
-This project is licensed under the MIT License.
-
 👉 [Live Demo](https://juristi-q.vercel.app)
 
 ## 🙋‍♂️ Author
