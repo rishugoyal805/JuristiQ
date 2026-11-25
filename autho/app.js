@@ -17,24 +17,31 @@ const moment = require('moment');
 const twilio = require('twilio');
 app.set("trust proxy", 1);
 const cors = require("cors");
+
+const allowedOrigins = [
+  "https://one-famous-sculpin.ngrok-free.app",
+  "https://positive-liberal-treefrog.ngrok-free.app",
+  "https://personally-allowing-lacewing.ngrok-free.app",
+  "http://localhost:5173",
+  "https://juristi-q.vercel.app"
+];
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      const allowedOrigins = [
-        "https://one-famous-sculpin.ngrok-free.app","positive-liberal-treefrog.ngrok-free.app","personally-allowing-lacewing.ngrok-free.app",
-        "http://localhost:5173","https://juristi-q.vercel.app"
-      ];
-
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.log("❌ Blocked CORS for origin:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true, // Allow cookies/auth headers
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
+
 
 const postModel = require("./models/post");
 const casesModel = require("./models/cases");
@@ -137,11 +144,13 @@ app.post("/login", async (req, res) => {
     console.log("Generated token:", token);
 
     // Set cookie with token
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Set to true for production
-      sameSite: "none" // For cross-origin requests
-    });
+   res.cookie("token", token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "None",
+  maxAge: 24 * 60 * 60 * 1000 // 1 day in milliseconds
+});
+
 
     res.json({ message: "Login successful", token });
   } catch (error) {
@@ -426,29 +435,30 @@ app.get("/casesinfo", isLoggedIn, async (req, res) => {
 app.post("/createcase", isLoggedIn, async (req, res) => {
   let user = await userModel.findOne({ email: req.user.email });
   try {
-    const { case_ref_no, caseTitle, clientName, status, nextHearing, fees, pending_fees } = req.body;
+    const { case_ref_no, caseTitle, clientName, status, nextHearing, fees, amount_paid } = req.body;
 
-    // Create a new case
     const newCase = await casesModel.create({
       user: user._id,
       case_ref_no,
       caseTitle,
       clientName,
       status,
-      nextHearing: nextHearing, // Match field name in schema
+      nextHearing,
       fees,
-      pending_fees,
+      amount_paid,
     });
+
     await newCase.save();
     user.cases.push(newCase._id);
-
     await user.save();
+
     res.status(201).json({ success: true, message: "Case created successfully", case: newCase });
   } catch (error) {
     console.error("Error creating case:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
+
 app.put("/updatecase/:case_ref_no", async (req, res) => {
   try {
     const updatedCase = await casesModel.findOneAndUpdate(
@@ -459,7 +469,7 @@ app.put("/updatecase/:case_ref_no", async (req, res) => {
         status: req.body.status,
         nextHearing: req.body.nextHearing ? new Date(req.body.nextHearing) : null, // Convert to Date
         fees: req.body.fees,
-        pending_fees: req.body.pending_fees,
+         amount_paid: req.body.amount_paid,
       },
       { new: true }
     );
@@ -639,10 +649,10 @@ app.post("/createfee", isLoggedIn, async (req, res) => {
     }
 
     // Extract all required fields from req.body
-    const { case_ref_no, clientName, fees, amount_paid, pending_fees, payment_mode, due_date, remarks } = req.body;
+    const { case_ref_no, clientName, fees, amount_paid,   payment_mode, due_date, remarks } = req.body;
 
     // Check if all required fields are present
-    if (!case_ref_no || !clientName || !fees || !amount_paid || !pending_fees || !payment_mode || !due_date) {
+    if (!case_ref_no || !clientName || !fees || !amount_paid || !payment_mode || !due_date) {
       return res.status(400).json({ success: false, message: "All fields are required." });
     }
 
@@ -652,7 +662,7 @@ app.post("/createfee", isLoggedIn, async (req, res) => {
       clientName,
       fees,
       amount_paid,
-      pending_fees,
+       
       payment_mode,
       due_date: new Date(due_date),
       remarks,
